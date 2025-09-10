@@ -37,36 +37,45 @@ st.set_page_config(
 )
 
 # Function to load data with cache
+from pathlib import Path
+
+# Carpeta donde está el script app2.py
+APP_DIR = Path(__file__).parent.resolve()
+DEFAULT_CSV = APP_DIR / "data" / "titanic_clean.csv"
+
 @st.cache_data
 def load_data(file_path=None, uploaded_file=None):
-        """Loads the clean Titanic dataset with cache optimization"""
-        try:
-                if uploaded_file is not None:
-                        df = pd.read_csv(uploaded_file)
-                        st.success(f"✅ Custom file loaded: {uploaded_file.name}")
-                elif file_path:
-                        df = pd.read_csv(file_path)
-                        st.success(f"✅ Default file loaded: {file_path}")
-                else:
-                        # Fallback: create synthetic dataset if file not found
-                        st.warning("⚠️ File not found. Creating synthetic dataset for demonstration.")
-                        np.random.seed(42)
-                        n_samples = 891
-                        df = pd.DataFrame({
-                                'survived': np.random.choice([0, 1], n_samples),
-                                'pclass': np.random.choice([1, 2, 3], n_samples),
-                                'sex': np.random.choice(['male', 'female'], n_samples),
-                                'age': np.random.normal(30, 15, n_samples).clip(0, 100),
-                                'sibsp': np.random.choice([0, 1, 2, 3], n_samples),
-                                'parch': np.random.choice([0, 1, 2], n_samples),
-                                'fare': np.random.exponential(30, n_samples),
-                                'embarked': np.random.choice(['C', 'Q', 'S'], n_samples)
-                        })
-                
-                return df
-        except Exception as e:
-                st.error(f"❌ Error loading data: {str(e)}")
-                return pd.DataFrame()
+    try:
+        if uploaded_file is not None:
+            df = pd.read_csv(uploaded_file)
+            st.success(f"✅ Custom file loaded: {uploaded_file.name}")
+            return df
+
+        # Usa la ruta robusta por defecto
+        file_path = Path(file_path) if file_path else DEFAULT_CSV
+        if file_path.exists():
+            df = pd.read_csv(file_path)
+            st.success(f"✅ Default file loaded: {file_path}")
+            return df
+
+        # Fallback si el fichero no existe
+        st.warning("⚠️ Default CSV not found. Creating a synthetic dataset.")
+        np.random.seed(42)
+        n = 891
+        return pd.DataFrame({
+            'survived': np.random.choice([0, 1], n),
+            'pclass': np.random.choice([1, 2, 3], n),
+            'sex': np.random.choice(['male', 'female'], n),
+            'age': np.random.normal(30, 15, n).clip(0, 100),
+            'sibsp': np.random.choice([0, 1, 2, 3], n),
+            'parch': np.random.choice([0, 1, 2], n),
+            'fare': np.random.exponential(30, n),
+            'embarked': np.random.choice(['C', 'Q', 'S'], n)
+        })
+    except Exception as e:
+        st.error(f"❌ Error loading data: {e}")
+        return pd.DataFrame()
+
 
 # Function to create filters in sidebar
 def create_filters(df):
@@ -317,9 +326,9 @@ def main():
                 help="If no file is uploaded, titanic_clean.csv will be used by default"
         )
         
-        # Load data
-        default_file = "data/titanic_clean.csv"
-        df = load_data(default_file, uploaded_file)
+        #Load data
+        df = load_data(uploaded_file=uploaded_file)
+
         
         if df.empty:
                 st.error("❌ Could not load data. Verify that 'titanic_clean.csv' exists or upload your file.")
